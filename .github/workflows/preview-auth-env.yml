@@ -23,4 +23,5 @@ jobs:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_EVENT_ACTION: ${{ github.event.action }}
           GITHUB_HEAD_REF: ${{ github.head_ref }}
+          GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: bash .github/scripts/preview-auth-env.sh

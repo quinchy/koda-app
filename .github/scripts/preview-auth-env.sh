@@ -7,6 +7,10 @@ set -euo pipefail
 
 AUTH_HEADER="Authorization: Bearer ${VERCEL_TOKEN}"
 
+log() {
+  echo "$*" >&2
+}
+
 build_url() {
   local path="$1"
 
@@ -42,8 +46,8 @@ api() {
   response="${response%$'\n'*}"
 
   if [[ "${status}" -lt 200 || "${status}" -ge 300 ]]; then
-    echo "Vercel API ${method} ${path} failed with HTTP ${status}" >&2
-    echo "${response}" >&2
+    log "Vercel API ${method} ${path} failed with HTTP ${status}"
+    log "${response}"
     return 1
   fi
 
@@ -87,29 +91,35 @@ upsert_branch_env() {
 
 wait_for_preview_deployment() {
   local branch="$1"
-  local encoded_branch attempt response deployment_url deployment_id project_name
+  local commit_sha="$2"
+  local encoded_branch attempt response deployment_json
 
   encoded_branch="$(jq -rn --arg branch "${branch}" '$branch|@uri')"
 
   for attempt in $(seq 1 30); do
-    echo "Waiting for Vercel preview deployment (${attempt}/30) on branch ${branch}..."
+    log "Waiting for READY Vercel preview deployment (${attempt}/30) on branch ${branch}..."
 
-    response="$(api GET "/v6/deployments?projectId=${VERCEL_PROJECT_ID}&meta-githubCommitRef=${encoded_branch}&limit=1")"
-    deployment_url="$(jq -r '.deployments[0]?.url // empty' <<<"${response}")"
-    deployment_id="$(jq -r '.deployments[0]?.uid // empty' <<<"${response}")"
-    project_name="$(jq -r '.deployments[0]?.name // empty' <<<"${response}")"
+    response="$(api GET "/v6/deployments?projectId=${VERCEL_PROJECT_ID}&branch=${encoded_branch}&state=READY&limit=5")"
+    deployment_json="$(jq -c --arg sha "${commit_sha}" '
+      [.deployments[]? | select(.meta.githubCommitSha == $sha)][0]
+      // .deployments[0]?
+    ' <<<"${response}")"
 
-    if [[ -n "${deployment_url}" ]]; then
-      echo "https://${deployment_url}"
-      echo "${deployment_id}"
-      echo "${project_name}"
+    if [[ -n "${deployment_json}" && "${deployment_json}" != "null" ]]; then
+      jq -nc \
+        --argjson deployment "${deployment_json}" \
+        '{
+          url: ("https://" + $deployment.url),
+          id: ($deployment.id // $deployment.uid),
+          name: $deployment.name
+        }'
       return 0
     fi
 
     sleep 10
   done
 
-  echo "Timed out waiting for a Vercel preview deployment on branch ${branch}" >&2
+  log "Timed out waiting for a READY Vercel preview deployment on branch ${branch}"
   return 1
 }
 
@@ -141,14 +151,20 @@ cleanup_preview_auth_env() {
 
 configure_preview_auth_env() {
   local branch="$1"
-  local preview_url deployment_id project_name auth_secret deployment_info
+  local commit_sha="$2"
+  local deployment_json preview_url deployment_id project_name auth_secret
 
-  deployment_info="$(wait_for_preview_deployment "${branch}")"
-  preview_url="$(sed -n '1p' <<<"${deployment_info}")"
-  deployment_id="$(sed -n '2p' <<<"${deployment_info}")"
-  project_name="$(sed -n '3p' <<<"${deployment_info}")"
+  deployment_json="$(wait_for_preview_deployment "${branch}" "${commit_sha}")"
+  preview_url="$(jq -r '.url' <<<"${deployment_json}")"
+  deployment_id="$(jq -r '.id' <<<"${deployment_json}")"
+  project_name="$(jq -r '.name' <<<"${deployment_json}")"
 
-  if [[ -z "${project_name}" ]]; then
+  if [[ ! "${preview_url}" =~ ^https:// ]]; then
+    log "Refusing to set BETTER_AUTH_URL because preview URL is invalid: ${preview_url}"
+    exit 1
+  fi
+
+  if [[ -z "${project_name}" || "${project_name}" == "null" ]]; then
     project_name="$(get_project_name)"
   fi
 
@@ -156,16 +172,28 @@ configure_preview_auth_env() {
 
   upsert_branch_env "BETTER_AUTH_URL" "${preview_url}" "${branch}"
   upsert_branch_env "BETTER_AUTH_SECRET" "${auth_secret}" "${branch}"
-  redeploy_preview "${deployment_id}" "${project_name}"
 
-  echo "Configured preview auth env for ${branch} at ${preview_url}"
+  if redeploy_preview "${deployment_id}" "${project_name}"; then
+    log "Redeployed preview ${deployment_id}"
+  else
+    log "Env vars were set, but redeploy failed. Push again or redeploy manually in Vercel."
+    exit 1
+  fi
+
+  log "Configured preview auth env for ${branch} at ${preview_url}"
 }
 
 if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
   BRANCH="${GITHUB_HEAD_REF:-}"
+  COMMIT_SHA="${GITHUB_HEAD_SHA:-}"
 
   if [[ -z "${BRANCH}" ]]; then
-    echo "Missing pull request head branch" >&2
+    log "Missing pull request head branch"
+    exit 1
+  fi
+
+  if [[ -z "${COMMIT_SHA}" ]]; then
+    log "Missing pull request head commit SHA"
     exit 1
   fi
 
@@ -173,9 +201,9 @@ if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
 
   if [[ "${ACTION}" == "closed" ]]; then
     cleanup_preview_auth_env "${BRANCH}"
-    echo "Removed preview auth env for ${BRANCH}"
+    log "Removed preview auth env for ${BRANCH}"
     exit 0
   fi
 
-  configure_preview_auth_env "${BRANCH}"
+  configure_preview_auth_env "${BRANCH}" "${COMMIT_SHA}"
 fi
