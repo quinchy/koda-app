@@ -1,13 +1,12 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
+import { redirectAfterAuth } from "@/lib/auth-redirect";
 
 export function SignOutButton() {
-  const router = useRouter();
   const mutation = useMutation({
     mutationFn: async () => {
       const { error } = await authClient.signOut();
@@ -22,8 +21,7 @@ export function SignOutButton() {
       );
     },
     onSuccess: () => {
-      router.push("/auth/login");
-      router.refresh();
+      redirectAfterAuth("/auth/login");
     },
   });
 

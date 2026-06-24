@@ -3,7 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import type { z } from "zod";
 import { AuthCard } from "@/components/auth/auth-card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { redirectAfterAuth } from "@/lib/auth-redirect";
 import { loginSchema, PASSWORD_MIN_LENGTH, registerSchema } from "@/lib/validations/auth";
 
 type LoginValues = z.infer<typeof loginSchema>;
@@ -32,8 +33,18 @@ function getDisplayName(email: string) {
   return email.split("@")[0] || email;
 }
 
+function useRedirectIfAuthenticated() {
+  const session = authClient.useSession();
+
+  useEffect(() => {
+    if (session.data) {
+      redirectAfterAuth();
+    }
+  }, [session.data]);
+}
+
 export function LoginForm() {
-  const router = useRouter();
+  useRedirectIfAuthenticated();
   const mutation = useMutation({
     mutationFn: async (value: LoginValues) => {
       const { error } = await authClient.signIn.email({
@@ -46,8 +57,7 @@ export function LoginForm() {
       }
     },
     onSuccess: () => {
-      router.push("/");
-      router.refresh();
+      redirectAfterAuth();
     },
   });
 
@@ -162,7 +172,7 @@ export function LoginForm() {
 }
 
 export function RegisterForm() {
-  const router = useRouter();
+  useRedirectIfAuthenticated();
   const mutation = useMutation({
     mutationFn: async (value: RegisterValues) => {
       const { error } = await authClient.signUp.email({
@@ -176,8 +186,7 @@ export function RegisterForm() {
       }
     },
     onSuccess: () => {
-      router.push("/");
-      router.refresh();
+      redirectAfterAuth();
     },
   });
 
