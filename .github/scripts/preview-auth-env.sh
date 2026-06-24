@@ -92,8 +92,9 @@ upsert_branch_env() {
 wait_for_preview_deployment() {
   local branch="$1"
   local commit_sha="$2"
-  local encoded_branch attempt response deployment_json
+  local branch_slug encoded_branch attempt response deployment_json deployment_id
 
+  branch_slug="${branch//\//-}"
   encoded_branch="$(jq -rn --arg branch "${branch}" '$branch|@uri')"
 
   for attempt in $(seq 1 30); do
@@ -106,13 +107,29 @@ wait_for_preview_deployment() {
     ' <<<"${response}")"
 
     if [[ -n "${deployment_json}" && "${deployment_json}" != "null" ]]; then
+      deployment_id="$(jq -r '.id // .uid' <<<"${deployment_json}")"
+      deployment_json="$(api GET "/v13/deployments/${deployment_id}")"
+
       jq -nc \
         --argjson deployment "${deployment_json}" \
-        '{
-          url: ("https://" + $deployment.url),
-          id: ($deployment.id // $deployment.uid),
-          name: $deployment.name
-        }'
+        --arg branch_slug "${branch_slug}" \
+        '
+          def as_url:
+            if startswith("https://") then . else "https://" + . end;
+          (
+            [$deployment.alias[]? | select(contains("-git-") and contains($branch_slug))][0]
+            // [$deployment.alias[]? | select(contains("-git-"))][0]
+          ) as $git_alias
+          | {
+              url: (
+                if $git_alias then ($git_alias | as_url)
+                else ("https://" + $deployment.url)
+                end
+              ),
+              id: ($deployment.id // $deployment.uid),
+              name: $deployment.name
+            }
+        '
       return 0
     fi
 
