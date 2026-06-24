@@ -22,13 +22,15 @@ const PRIORITY: Record<string, $Enums.Priority> = {
 async function main() {
   await prisma.project.deleteMany();
   await prisma.project.createMany({
-    data: data.map(({ id: _id, status, priority, startDate, dueDate, ...rest }) => ({
-      ...rest,
-      status: STATUS[status],
-      priority: PRIORITY[priority],
-      startDate: new Date(startDate),
-      dueDate: new Date(dueDate),
-    })),
+    data: data.map(
+      ({ id: _id, status, priority, startDate, dueDate, ...rest }) => ({
+        ...rest,
+        status: STATUS[status],
+        priority: PRIORITY[priority],
+        startDate: new Date(startDate),
+        dueDate: new Date(dueDate),
+      }),
+    ),
   });
   console.log(`Seeded ${data.length} projects`);
 }
