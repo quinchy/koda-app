@@ -25,13 +25,29 @@ api() {
   local method="$1"
   local path="$2"
   shift 2
+  local response
+  local status
 
-  curl --fail --silent --show-error \
-    --request "${method}" \
-    --url "$(build_url "${path}")" \
-    --header "${AUTH_HEADER}" \
-    --header "Content-Type: application/json" \
-    "$@"
+  response="$(
+    curl --silent --show-error \
+      --request "${method}" \
+      --url "$(build_url "${path}")" \
+      --header "${AUTH_HEADER}" \
+      --header "Content-Type: application/json" \
+      --write-out "\n%{http_code}" \
+      "$@"
+  )"
+
+  status="${response##*$'\n'}"
+  response="${response%$'\n'*}"
+
+  if [[ "${status}" -lt 200 || "${status}" -ge 300 ]]; then
+    echo "Vercel API ${method} ${path} failed with HTTP ${status}" >&2
+    echo "${response}" >&2
+    return 1
+  fi
+
+  printf "%s" "${response}"
 }
 
 delete_branch_env() {
@@ -44,7 +60,7 @@ delete_branch_env() {
   ' | head -n 1)"
 
   if [[ -n "${env_id}" && "${env_id}" != "null" ]]; then
-    api DELETE "/v10/projects/${VERCEL_PROJECT_ID}/env/${env_id}"
+    api DELETE "/v10/projects/${VERCEL_PROJECT_ID}/env/${env_id}" >/dev/null
   fi
 }
 
@@ -66,23 +82,23 @@ upsert_branch_env() {
         type: "encrypted",
         target: ["preview"],
         gitBranch: $branch
-      }')"
+      }')" >/dev/null
 }
 
 wait_for_preview_deployment() {
   local branch="$1"
-  local encoded_branch attempt deployment_url deployment_id
+  local encoded_branch attempt response deployment_url deployment_id
 
   encoded_branch="$(jq -rn --arg branch "${branch}" '$branch|@uri')"
 
   for attempt in $(seq 1 30); do
-    read -r deployment_url deployment_id < <(
-      api GET "/v6/deployments?projectId=${VERCEL_PROJECT_ID}&meta-githubCommitRef=${encoded_branch}&limit=1" | jq -r '
-        .deployments[0]? | [.url, .uid] | @tsv
-      '
-    )
+    echo "Waiting for Vercel preview deployment (${attempt}/30) on branch ${branch}..."
 
-    if [[ -n "${deployment_url}" && "${deployment_url}" != "null" ]]; then
+    response="$(api GET "/v6/deployments?projectId=${VERCEL_PROJECT_ID}&meta-githubCommitRef=${encoded_branch}&limit=1")"
+    deployment_url="$(jq -r '.deployments[0]?.url // empty' <<<"${response}")"
+    deployment_id="$(jq -r '.deployments[0]?.uid // empty' <<<"${response}")"
+
+    if [[ -n "${deployment_url}" ]]; then
       printf "%s %s" "https://${deployment_url}" "${deployment_id}"
       return 0
     fi
@@ -103,7 +119,7 @@ redeploy_preview() {
       '{
         deploymentId: $deploymentId,
         target: "preview"
-      }')"
+      }')" >/dev/null
 }
 
 cleanup_preview_auth_env() {
