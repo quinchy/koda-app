@@ -87,7 +87,7 @@ upsert_branch_env() {
 
 wait_for_preview_deployment() {
   local branch="$1"
-  local encoded_branch attempt response deployment_url deployment_id
+  local encoded_branch attempt response deployment_url deployment_id project_name
 
   encoded_branch="$(jq -rn --arg branch "${branch}" '$branch|@uri')"
 
@@ -97,9 +97,12 @@ wait_for_preview_deployment() {
     response="$(api GET "/v6/deployments?projectId=${VERCEL_PROJECT_ID}&meta-githubCommitRef=${encoded_branch}&limit=1")"
     deployment_url="$(jq -r '.deployments[0]?.url // empty' <<<"${response}")"
     deployment_id="$(jq -r '.deployments[0]?.uid // empty' <<<"${response}")"
+    project_name="$(jq -r '.deployments[0]?.name // empty' <<<"${response}")"
 
     if [[ -n "${deployment_url}" ]]; then
-      printf "%s %s" "https://${deployment_url}" "${deployment_id}"
+      echo "https://${deployment_url}"
+      echo "${deployment_id}"
+      echo "${project_name}"
       return 0
     fi
 
@@ -110,14 +113,21 @@ wait_for_preview_deployment() {
   return 1
 }
 
+get_project_name() {
+  api GET "/v9/projects/${VERCEL_PROJECT_ID}" | jq -r '.name'
+}
+
 redeploy_preview() {
   local deployment_id="$1"
+  local project_name="$2"
 
   api POST "/v13/deployments" \
     --data "$(jq -n \
       --arg deploymentId "${deployment_id}" \
+      --arg name "${project_name}" \
       '{
         deploymentId: $deploymentId,
+        name: $name,
         target: "preview"
       }')" >/dev/null
 }
@@ -131,14 +141,22 @@ cleanup_preview_auth_env() {
 
 configure_preview_auth_env() {
   local branch="$1"
-  local preview_url deployment_id auth_secret
+  local preview_url deployment_id project_name auth_secret deployment_info
 
-  read -r preview_url deployment_id < <(wait_for_preview_deployment "${branch}")
+  deployment_info="$(wait_for_preview_deployment "${branch}")"
+  preview_url="$(sed -n '1p' <<<"${deployment_info}")"
+  deployment_id="$(sed -n '2p' <<<"${deployment_info}")"
+  project_name="$(sed -n '3p' <<<"${deployment_info}")"
+
+  if [[ -z "${project_name}" ]]; then
+    project_name="$(get_project_name)"
+  fi
+
   auth_secret="$(openssl rand -base64 32)"
 
   upsert_branch_env "BETTER_AUTH_URL" "${preview_url}" "${branch}"
   upsert_branch_env "BETTER_AUTH_SECRET" "${auth_secret}" "${branch}"
-  redeploy_preview "${deployment_id}"
+  redeploy_preview "${deployment_id}" "${project_name}"
 
   echo "Configured preview auth env for ${branch} at ${preview_url}"
 }
