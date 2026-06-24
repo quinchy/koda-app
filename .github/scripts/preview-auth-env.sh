@@ -137,8 +137,7 @@ redeploy_preview() {
       --arg name "${project_name}" \
       '{
         deploymentId: $deploymentId,
-        name: $name,
-        target: "preview"
+        name: $name
       }')" >/dev/null
 }
 
