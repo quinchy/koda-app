@@ -4,11 +4,19 @@ import { requireSession } from "@/lib/api/require-session";
 import { serializeProject } from "@/lib/projects/serialize-project";
 import { projectService } from "@/lib/services/project-service";
 import { createProjectSchema } from "@/lib/validations/project";
+import { projectListQuerySchema } from "@/lib/validations/project-list-query";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await requireSession();
-    const projects = await projectService.listProjects();
+    const { searchParams } = new URL(request.url);
+    const query = projectListQuerySchema.parse({
+      q: searchParams.get("q")?.trim() || undefined,
+      status: searchParams.get("status") ?? undefined,
+      priority: searchParams.get("priority") ?? undefined,
+      sort: searchParams.get("sort") ?? undefined,
+    });
+    const projects = await projectService.listProjects(query);
 
     return NextResponse.json(projects.map(serializeProject));
   } catch (error) {
