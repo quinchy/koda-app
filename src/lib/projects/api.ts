@@ -5,6 +5,16 @@ export const projectKeys = {
   all: ["projects"] as const,
 };
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 async function parseError(response: Response) {
   const body = (await response.json().catch(() => null)) as {
     error?: string;
@@ -13,55 +23,47 @@ async function parseError(response: Response) {
   return body?.error ?? "Something went wrong.";
 }
 
-export async function fetchProjects(): Promise<SerializedProject[]> {
-  const response = await fetch("/api/projects");
+async function request<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
+  const response = await fetch(input, init);
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw new ApiError(await parseError(response), response.status);
   }
 
-  return response.json();
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return response.json() as Promise<T>;
+}
+
+export async function fetchProjects(): Promise<SerializedProject[]> {
+  return request("/api/projects");
 }
 
 export async function createProject(
   input: CreateProjectInput,
 ): Promise<SerializedProject> {
-  const response = await fetch("/api/projects", {
+  return request("/api/projects", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
-
-  if (!response.ok) {
-    throw new Error(await parseError(response));
-  }
-
-  return response.json();
 }
 
 export async function updateProject(
   id: number,
   input: CreateProjectInput,
 ): Promise<SerializedProject> {
-  const response = await fetch(`/api/projects/${id}`, {
+  return request(`/api/projects/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
-
-  if (!response.ok) {
-    throw new Error(await parseError(response));
-  }
-
-  return response.json();
 }
 
 export async function deleteProject(id: number) {
-  const response = await fetch(`/api/projects/${id}`, {
+  return request<void>(`/api/projects/${id}`, {
     method: "DELETE",
   });
-
-  if (!response.ok) {
-    throw new Error(await parseError(response));
-  }
 }

@@ -26,6 +26,13 @@ export class ValidationError extends AppError {
   }
 }
 
+export class UnauthorizedError extends AppError {
+  constructor(message = "Unauthorized") {
+    super(401, message);
+    this.name = "UnauthorizedError";
+  }
+}
+
 export function handleApiError(error: unknown) {
   if (error instanceof AppError) {
     return NextResponse.json(
