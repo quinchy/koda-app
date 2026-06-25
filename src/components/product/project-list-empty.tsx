@@ -6,7 +6,7 @@ import { useState } from "react";
 import { ProjectSheet } from "@/components/product/project-sheet";
 import { Button } from "@/components/ui/button";
 
-export function ProjectListEmpty() {
+export function ProjectListEmpty({ filtered = false }: { filtered?: boolean }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -18,21 +18,27 @@ export function ProjectListEmpty() {
           className="size-16 text-muted-foreground"
         />
         <div className="space-y-1">
-          <h2 className="font-heading text-lg font-medium">No Projects Yet</h2>
+          <h2 className="font-heading text-lg font-medium">
+            {filtered ? "No matching projects" : "No Projects Yet"}
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Create your first one with New project.
+            {filtered
+              ? "Try adjusting your search or filters."
+              : "Create your first one with New project."}
           </p>
         </div>
-        <Button onClick={() => setOpen(true)}>
-          <HugeiconsIcon
-            icon={Add01Icon}
-            strokeWidth={2}
-            data-icon="inline-start"
-          />
-          New project
-        </Button>
+        {!filtered ? (
+          <Button onClick={() => setOpen(true)}>
+            <HugeiconsIcon
+              icon={Add01Icon}
+              strokeWidth={2}
+              data-icon="inline-start"
+            />
+            New project
+          </Button>
+        ) : null}
       </div>
-      <ProjectSheet open={open} onOpenChange={setOpen} />
+      {!filtered ? <ProjectSheet open={open} onOpenChange={setOpen} /> : null}
     </>
   );
 }

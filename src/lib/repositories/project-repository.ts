@@ -1,10 +1,59 @@
 import { prisma } from "@/lib/prisma";
+import type {
+  ProjectListQuery,
+  ProjectSort,
+} from "@/lib/validations/project-list-query";
 import type { Prisma } from "../../../prisma/generated/client";
 
+function buildWhere(query: ProjectListQuery): Prisma.ProjectWhereInput {
+  const where: Prisma.ProjectWhereInput = {};
+
+  if (query.q) {
+    where.OR = [
+      { clientName: { contains: query.q, mode: "insensitive" } },
+      { projectName: { contains: query.q, mode: "insensitive" } },
+    ];
+  }
+
+  if (query.status) {
+    where.status = query.status;
+  }
+
+  if (query.priority) {
+    where.priority = query.priority;
+  }
+
+  return where;
+}
+
+function buildOrderBy(
+  sort: ProjectSort,
+): Prisma.ProjectOrderByWithRelationInput {
+  switch (sort) {
+    case "oldest":
+      return { createdAt: "asc" };
+    case "dueDate":
+      return { dueDate: "asc" };
+    case "dueDateDesc":
+      return { dueDate: "desc" };
+    case "priority":
+      return { priority: "asc" };
+    case "priorityDesc":
+      return { priority: "desc" };
+    case "status":
+      return { status: "asc" };
+    case "name":
+      return { projectName: "asc" };
+    default:
+      return { createdAt: "desc" };
+  }
+}
+
 export class ProjectRepository {
-  findMany() {
+  findMany(query: ProjectListQuery) {
     return prisma.project.findMany({
-      orderBy: { createdAt: "desc" },
+      where: buildWhere(query),
+      orderBy: buildOrderBy(query.sort),
     });
   }
 
