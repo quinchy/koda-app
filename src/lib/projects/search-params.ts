@@ -1,7 +1,6 @@
 "use client";
 
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
-import type { ProjectPriority, ProjectStatus } from "@/lib/projects/types";
 import {
   PROJECT_SORT_VALUES,
   type ProjectListParams,
@@ -18,7 +17,7 @@ const STATUS_FILTER_VALUES = [
 
 const PRIORITY_FILTER_VALUES = ["all", "LOW", "MEDIUM", "HIGH"] as const;
 
-export type ProjectSearchParams = {
+type ProjectSearchParams = {
   q: string;
   status: (typeof STATUS_FILTER_VALUES)[number];
   priority: (typeof PRIORITY_FILTER_VALUES)[number];
@@ -27,7 +26,7 @@ export type ProjectSearchParams = {
 
 export const SEARCH_DEBOUNCE_MS = 300;
 
-export const projectSearchParamsParsers = {
+const projectSearchParamsParsers = {
   q: parseAsString.withDefault("").withOptions({
     clearOnDefault: true,
   }),
@@ -120,5 +119,3 @@ export function getPriorityFilterLabel(
       ?.label ?? "All priorities"
   );
 }
-
-export type { ProjectStatus, ProjectPriority };
