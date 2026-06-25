@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { handleApiError, parseProjectId } from "@/lib/api/errors";
+import { requireSession } from "@/lib/api/require-session";
 import { serializeProject } from "@/lib/projects/serialize-project";
 import { projectService } from "@/lib/services/project-service";
 import { updateProjectSchema } from "@/lib/validations/project";
@@ -10,6 +11,7 @@ type RouteContext = {
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
+    await requireSession();
     const { id: rawId } = await context.params;
     const id = parseProjectId(rawId);
     const project = await projectService.getProject(id);
@@ -22,6 +24,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
 export async function PUT(request: Request, context: RouteContext) {
   try {
+    await requireSession();
     const { id: rawId } = await context.params;
     const id = parseProjectId(rawId);
     const body = await request.json();
@@ -36,6 +39,7 @@ export async function PUT(request: Request, context: RouteContext) {
 
 export async function DELETE(_request: Request, context: RouteContext) {
   try {
+    await requireSession();
     const { id: rawId } = await context.params;
     const id = parseProjectId(rawId);
     await projectService.deleteProject(id);
