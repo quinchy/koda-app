@@ -19,8 +19,22 @@ const PRIORITY: Record<string, $Enums.Priority> = {
   High: "HIGH",
 };
 
+// Replace with your email to seed projects into your account.
+const SEED_USER_EMAIL = "seed@koda.local";
+
 async function main() {
-  await prisma.project.deleteMany();
+  const seedUser = await prisma.user.upsert({
+    where: { email: SEED_USER_EMAIL },
+    create: {
+      id: crypto.randomUUID(),
+      email: SEED_USER_EMAIL,
+      name: "Seed User",
+      emailVerified: true,
+    },
+    update: {},
+  });
+
+  await prisma.project.deleteMany({ where: { userId: seedUser.id } });
   await prisma.project.createMany({
     data: data.map(
       ({ id: _id, status, priority, startDate, dueDate, ...rest }) => ({
@@ -29,10 +43,11 @@ async function main() {
         priority: PRIORITY[priority],
         startDate: new Date(startDate),
         dueDate: new Date(dueDate),
+        userId: seedUser.id,
       }),
     ),
   });
-  console.log(`Seeded ${data.length} projects`);
+  console.log(`Seeded ${data.length} projects for ${SEED_USER_EMAIL}`);
 }
 
 main()

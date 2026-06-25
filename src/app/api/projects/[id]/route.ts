@@ -11,10 +11,10 @@ type RouteContext = {
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
-    await requireSession();
+    const session = await requireSession();
     const { id: rawId } = await context.params;
     const id = parseProjectId(rawId);
-    const project = await projectService.getProject(id);
+    const project = await projectService.getProject(id, session.user.id);
 
     return NextResponse.json(serializeProject(project));
   } catch (error) {
@@ -24,12 +24,16 @@ export async function GET(_request: Request, context: RouteContext) {
 
 export async function PUT(request: Request, context: RouteContext) {
   try {
-    await requireSession();
+    const session = await requireSession();
     const { id: rawId } = await context.params;
     const id = parseProjectId(rawId);
     const body = await request.json();
     const input = updateProjectSchema.parse(body);
-    const project = await projectService.updateProject(id, input);
+    const project = await projectService.updateProject(
+      id,
+      session.user.id,
+      input,
+    );
 
     return NextResponse.json(serializeProject(project));
   } catch (error) {
@@ -39,10 +43,10 @@ export async function PUT(request: Request, context: RouteContext) {
 
 export async function DELETE(_request: Request, context: RouteContext) {
   try {
-    await requireSession();
+    const session = await requireSession();
     const { id: rawId } = await context.params;
     const id = parseProjectId(rawId);
-    await projectService.deleteProject(id);
+    await projectService.deleteProject(id, session.user.id);
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
