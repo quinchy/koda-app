@@ -5,6 +5,7 @@ import {
   toProjectDates,
   type UpdateProjectInput,
 } from "@/lib/validations/project";
+import type { ProjectListQuery } from "@/lib/validations/project-list-query";
 import { Prisma } from "../../../prisma/generated/client";
 
 function isRecordNotFound(error: unknown) {
@@ -55,8 +56,11 @@ function buildUpdateData(input: UpdateProjectInput) {
 }
 
 export class ProjectService {
-  listProjects() {
-    return projectRepository.findMany();
+  listProjects(query: ProjectListQuery) {
+    return projectRepository.findMany({
+      ...query,
+      sort: query.sort ?? "newest",
+    });
   }
 
   async getProject(id: number) {

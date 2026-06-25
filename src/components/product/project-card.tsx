@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  PRIORITY_BADGE_CLASSNAME,
   PRIORITY_LABELS,
   STATUS_BADGE_CLASSNAME,
   STATUS_LABELS,
@@ -44,7 +45,9 @@ export function ProjectCard({ project }: { project: SerializedProject }) {
         <Badge className={STATUS_BADGE_CLASSNAME[project.status]}>
           {STATUS_LABELS[project.status]}
         </Badge>
-        <Badge variant="outline">{PRIORITY_LABELS[project.priority]}</Badge>
+        <Badge className={PRIORITY_BADGE_CLASSNAME[project.priority]}>
+          {PRIORITY_LABELS[project.priority]}
+        </Badge>
         <span className="w-full text-xs text-muted-foreground">
           {formatDate(project.startDate)} – {formatDate(project.dueDate)}
         </span>
