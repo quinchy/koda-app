@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-export function AppLogo({ className }: { className?: string }) {
+export function AppLogo({
+  className,
+  textClassName,
+}: {
+  className?: string;
+  textClassName?: string;
+}) {
   return (
     <Link
       href="/"
@@ -10,7 +16,12 @@ export function AppLogo({ className }: { className?: string }) {
       <span className="flex size-9 items-center justify-center rounded-lg bg-primary font-heading text-lg font-black text-primary-foreground">
         K
       </span>
-      <span className="font-heading text-2xl font-medium tracking-tight">
+      <span
+        className={cn(
+          "font-heading text-2xl font-medium tracking-tight",
+          textClassName,
+        )}
+      >
         KodaTrack
       </span>
     </Link>
