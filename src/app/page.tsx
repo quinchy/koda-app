@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { SignOutButton } from "@/components/auth/sign-out-button";
+import { ProjectsPage } from "@/components/product/projects-page";
 import { auth } from "@/lib/auth";
 
 export default async function Home() {
@@ -12,15 +12,5 @@ export default async function Home() {
     redirect("/auth/login");
   }
 
-  return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-      <div className="space-y-1">
-        <h1 className="font-heading text-2xl font-medium">KodaTrack</h1>
-        <p className="text-sm text-muted-foreground">
-          Signed in as {session.user.email}
-        </p>
-      </div>
-      <SignOutButton />
-    </main>
-  );
+  return <ProjectsPage userEmail={session.user.email} />;
 }
