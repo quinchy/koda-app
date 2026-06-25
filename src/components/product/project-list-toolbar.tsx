@@ -77,13 +77,13 @@ export function ProjectListToolbar() {
       <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <ProjectSearchInput />
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
           <Popover>
             <PopoverTrigger
               render={
                 <Button
                   variant={hasActiveFilters ? "secondary" : "outline"}
-                  className="min-w-28 justify-between gap-2"
+                  className="w-full min-w-0 justify-between gap-2 sm:w-auto sm:min-w-28"
                 />
               }
             >
@@ -166,7 +166,7 @@ export function ProjectListToolbar() {
               }
             }}
           >
-            <SelectTrigger className="min-w-52 justify-between gap-2">
+            <SelectTrigger className="w-full min-w-0 justify-between gap-2 sm:min-w-52">
               <span className="flex items-center gap-2">
                 <HugeiconsIcon
                   icon={SortingAZ01Icon}
