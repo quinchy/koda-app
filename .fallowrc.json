@@ -1,0 +1,5 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "ignoreDependencies": ["@base-ui/react", "class-variance-authority", "vaul"],
+  "ignorePatterns": ["src/components/ui/**"]
+}
