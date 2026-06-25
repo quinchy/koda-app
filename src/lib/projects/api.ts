@@ -1,8 +1,10 @@
 import type { CreateProjectInput } from "@/lib/validations/project";
+import type { ProjectListParams } from "@/lib/validations/project-list-query";
 import type { SerializedProject } from "./types";
 
 export const projectKeys = {
   all: ["projects"] as const,
+  list: (params: ProjectListParams) => [...projectKeys.all, params] as const,
 };
 
 export class ApiError extends Error {
@@ -37,8 +39,34 @@ async function request<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function fetchProjects(): Promise<SerializedProject[]> {
-  return request("/api/projects");
+function buildProjectsUrl(params: ProjectListParams = {}) {
+  const searchParams = new URLSearchParams();
+
+  if (params.q) {
+    searchParams.set("q", params.q);
+  }
+
+  if (params.status) {
+    searchParams.set("status", params.status);
+  }
+
+  if (params.priority) {
+    searchParams.set("priority", params.priority);
+  }
+
+  if (params.sort && params.sort !== "newest") {
+    searchParams.set("sort", params.sort);
+  }
+
+  const query = searchParams.toString();
+
+  return query ? `/api/projects?${query}` : "/api/projects";
+}
+
+export async function fetchProjects(
+  params: ProjectListParams = {},
+): Promise<SerializedProject[]> {
+  return request(buildProjectsUrl(params));
 }
 
 export async function createProject(

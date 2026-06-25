@@ -42,6 +42,13 @@ export const PRIORITY_LABELS = Object.fromEntries(
   PRIORITY_OPTIONS.map((option) => [option.value, option.label]),
 ) as Record<ProjectPriority, string>;
 
+export const PRIORITY_BADGE_CLASSNAME: Record<ProjectPriority, string> = {
+  LOW: "border-transparent bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300",
+  MEDIUM:
+    "border-transparent bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300",
+  HIGH: "border-transparent bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300",
+};
+
 export const DEFAULT_PROJECT_FORM_VALUES = {
   clientName: "",
   projectName: "",
