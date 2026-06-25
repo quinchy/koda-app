@@ -8,7 +8,7 @@ import { projectListQuerySchema } from "@/lib/validations/project-list-query";
 
 export async function GET(request: Request) {
   try {
-    await requireSession();
+    const session = await requireSession();
     const { searchParams } = new URL(request.url);
     const query = projectListQuerySchema.parse({
       q: searchParams.get("q")?.trim() || undefined,
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
       priority: searchParams.get("priority") ?? undefined,
       sort: searchParams.get("sort") ?? undefined,
     });
-    const projects = await projectService.listProjects(query);
+    const projects = await projectService.listProjects(session.user.id, query);
 
     return NextResponse.json(projects.map(serializeProject));
   } catch (error) {
@@ -26,10 +26,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    await requireSession();
+    const session = await requireSession();
     const body = await request.json();
     const input = createProjectSchema.parse(body);
-    const project = await projectService.createProject(input);
+    const project = await projectService.createProject(session.user.id, input);
 
     return NextResponse.json(serializeProject(project), { status: 201 });
   } catch (error) {

@@ -6,14 +6,7 @@ import {
   type UpdateProjectInput,
 } from "@/lib/validations/project";
 import type { ProjectListQuery } from "@/lib/validations/project-list-query";
-import { Prisma } from "../../../prisma/generated/client";
-
-function isRecordNotFound(error: unknown) {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === "P2025"
-  );
-}
+import type { Prisma } from "../../../prisma/generated/client";
 
 function assertDueDateOnOrAfterStartDate(startDate: Date, dueDate: Date) {
   if (dueDate < startDate) {
@@ -56,15 +49,18 @@ function buildUpdateData(input: UpdateProjectInput) {
 }
 
 export class ProjectService {
-  listProjects(query: ProjectListQuery) {
-    return projectRepository.findMany({
-      ...query,
-      sort: query.sort ?? "newest",
-    });
+  listProjects(userId: string, query: ProjectListQuery) {
+    return projectRepository.findMany(
+      {
+        ...query,
+        sort: query.sort ?? "newest",
+      },
+      userId,
+    );
   }
 
-  async getProject(id: number) {
-    const project = await projectRepository.findById(id);
+  async getProject(id: number, userId: string) {
+    const project = await projectRepository.findById(id, userId);
 
     if (!project) {
       throw new NotFoundError("Project not found");
@@ -73,7 +69,7 @@ export class ProjectService {
     return project;
   }
 
-  createProject(input: CreateProjectInput) {
+  createProject(userId: string, input: CreateProjectInput) {
     const { startDate, dueDate } = toProjectDates(input);
 
     return projectRepository.create({
@@ -84,18 +80,19 @@ export class ProjectService {
       priority: input.priority,
       startDate,
       dueDate,
+      user: { connect: { id: userId } },
     });
   }
 
-  async updateProject(id: number, input: UpdateProjectInput) {
+  async updateProject(id: number, userId: string, input: UpdateProjectInput) {
     const data = buildUpdateData(input);
 
     if (Object.keys(data).length === 0) {
-      return this.getProject(id);
+      return this.getProject(id, userId);
     }
 
     if (input.startDate !== undefined || input.dueDate !== undefined) {
-      const existing = await this.getProject(id);
+      const existing = await this.getProject(id, userId);
       const startDate =
         input.startDate !== undefined
           ? new Date(`${input.startDate}T00:00:00.000Z`)
@@ -108,26 +105,20 @@ export class ProjectService {
       assertDueDateOnOrAfterStartDate(startDate, dueDate);
     }
 
-    try {
-      return await projectRepository.update(id, data);
-    } catch (error) {
-      if (isRecordNotFound(error)) {
-        throw new NotFoundError("Project not found");
-      }
+    const project = await projectRepository.update(id, userId, data);
 
-      throw error;
+    if (!project) {
+      throw new NotFoundError("Project not found");
     }
+
+    return project;
   }
 
-  async deleteProject(id: number) {
-    try {
-      await projectRepository.delete(id);
-    } catch (error) {
-      if (isRecordNotFound(error)) {
-        throw new NotFoundError("Project not found");
-      }
+  async deleteProject(id: number, userId: string) {
+    const deleted = await projectRepository.delete(id, userId);
 
-      throw error;
+    if (!deleted) {
+      throw new NotFoundError("Project not found");
     }
   }
 }

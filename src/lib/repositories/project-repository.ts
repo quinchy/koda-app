@@ -5,8 +5,11 @@ import type {
 } from "@/lib/validations/project-list-query";
 import type { Prisma } from "../../../prisma/generated/client";
 
-function buildWhere(query: ProjectListQuery): Prisma.ProjectWhereInput {
-  const where: Prisma.ProjectWhereInput = {};
+function buildWhere(
+  query: ProjectListQuery,
+  userId: string,
+): Prisma.ProjectWhereInput {
+  const where: Prisma.ProjectWhereInput = { userId };
 
   if (query.q) {
     where.OR = [
@@ -50,16 +53,16 @@ function buildOrderBy(
 }
 
 export class ProjectRepository {
-  findMany(query: ProjectListQuery) {
+  findMany(query: ProjectListQuery, userId: string) {
     return prisma.project.findMany({
-      where: buildWhere(query),
+      where: buildWhere(query, userId),
       orderBy: buildOrderBy(query.sort),
     });
   }
 
-  findById(id: number) {
-    return prisma.project.findUnique({
-      where: { id },
+  findById(id: number, userId: string) {
+    return prisma.project.findFirst({
+      where: { id, userId },
     });
   }
 
@@ -67,17 +70,27 @@ export class ProjectRepository {
     return prisma.project.create({ data });
   }
 
-  update(id: number, data: Prisma.ProjectUpdateInput) {
-    return prisma.project.update({
-      where: { id },
+  async update(id: number, userId: string, data: Prisma.ProjectUpdateInput) {
+    const result = await prisma.project.updateMany({
+      where: { id, userId },
       data,
+    });
+
+    if (result.count === 0) {
+      return null;
+    }
+
+    return prisma.project.findUnique({
+      where: { id },
     });
   }
 
-  delete(id: number) {
-    return prisma.project.delete({
-      where: { id },
+  async delete(id: number, userId: string) {
+    const result = await prisma.project.deleteMany({
+      where: { id, userId },
     });
+
+    return result.count > 0;
   }
 }
 
