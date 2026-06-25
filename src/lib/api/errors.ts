@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
-export class AppError extends Error {
+class AppError extends Error {
   constructor(
     public statusCode: number,
     message: string,

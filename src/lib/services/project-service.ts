@@ -48,7 +48,7 @@ function buildUpdateData(input: UpdateProjectInput) {
   return data;
 }
 
-export class ProjectService {
+class ProjectService {
   listProjects(userId: string, query: ProjectListQuery) {
     return projectRepository.findMany(
       {

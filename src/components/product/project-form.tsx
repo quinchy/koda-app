@@ -83,7 +83,7 @@ export function ProjectForm({ formId, project, onSuccess }: ProjectFormProps) {
   return (
     <form
       id={formId}
-      className="flex flex-col gap-4 px-4 pb-4"
+      className="flex flex-col gap-4 px-4"
       onSubmit={(event) => {
         event.preventDefault();
         void form.handleSubmit();
@@ -285,23 +285,25 @@ export function ProjectForm({ formId, project, onSuccess }: ProjectFormProps) {
         </form.Field>
       </FieldGroup>
 
-      <form.Subscribe selector={(state) => state.isSubmitting}>
-        {(isSubmitting) => (
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isSubmitting || mutation.isPending}
-          >
-            {isSubmitting || mutation.isPending
-              ? isEdit
-                ? "Saving..."
-                : "Creating..."
-              : isEdit
-                ? "Save changes"
-                : "Create project"}
-          </Button>
-        )}
-      </form.Subscribe>
+      <div className="sticky bottom-0 z-10 -mx-4 border-t bg-popover px-4 py-4">
+        <form.Subscribe selector={(state) => state.isSubmitting}>
+          {(isSubmitting) => (
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isSubmitting || mutation.isPending}
+            >
+              {isSubmitting || mutation.isPending
+                ? isEdit
+                  ? "Saving..."
+                  : "Creating..."
+                : isEdit
+                  ? "Save changes"
+                  : "Create project"}
+            </Button>
+          )}
+        </form.Subscribe>
+      </div>
     </form>
   );
 }

@@ -1,44 +1,28 @@
 "use client";
 
-import { Add01Icon, FolderOpenIcon } from "@hugeicons/core-free-icons";
+import { FolderOpenIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useState } from "react";
-import { ProjectSheet } from "@/components/product/project-sheet";
-import { Button } from "@/components/ui/button";
+import { NewProjectDrawer } from "@/components/product/new-project-drawer";
 
 export function ProjectListEmpty({ filtered = false }: { filtered?: boolean }) {
-  const [open, setOpen] = useState(false);
-
   return (
-    <>
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16 text-center">
-        <HugeiconsIcon
-          icon={FolderOpenIcon}
-          strokeWidth={1.5}
-          className="size-16 text-muted-foreground"
-        />
-        <div className="space-y-1">
-          <h2 className="font-heading text-lg font-medium">
-            {filtered ? "No matching projects" : "No Projects Yet"}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {filtered
-              ? "Try adjusting your search or filters."
-              : "Create your first one with New project."}
-          </p>
-        </div>
-        {!filtered ? (
-          <Button onClick={() => setOpen(true)}>
-            <HugeiconsIcon
-              icon={Add01Icon}
-              strokeWidth={2}
-              data-icon="inline-start"
-            />
-            New project
-          </Button>
-        ) : null}
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16 text-center">
+      <HugeiconsIcon
+        icon={FolderOpenIcon}
+        strokeWidth={1.5}
+        className="size-16 text-muted-foreground"
+      />
+      <div className="space-y-1">
+        <h2 className="font-heading text-lg font-medium">
+          {filtered ? "No matching projects" : "No Projects Yet"}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {filtered
+            ? "Try adjusting your search or filters."
+            : "Create your first one with New project."}
+        </p>
       </div>
-      {!filtered ? <ProjectSheet open={open} onOpenChange={setOpen} /> : null}
-    </>
+      {!filtered ? <NewProjectDrawer /> : null}
+    </div>
   );
 }
