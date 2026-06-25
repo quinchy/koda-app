@@ -5,7 +5,7 @@ export function ProjectsPage({ userEmail }: { userEmail: string }) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <ProjectsNavbar userEmail={userEmail} />
-      <main className="mx-auto w-full max-w-6xl flex-1 p-6">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col p-6">
         <ProjectList />
       </main>
     </div>

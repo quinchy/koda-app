@@ -2,8 +2,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { ProjectCard } from "@/components/product/project-card";
+import { ProjectListEmpty } from "@/components/product/project-list-empty";
+import { ProjectListError } from "@/components/product/project-list-error";
+import { ProjectListUnauthorized } from "@/components/product/project-list-unauthorized";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchProjects, projectKeys } from "@/lib/projects/api";
+import { ApiError, fetchProjects, projectKeys } from "@/lib/projects/api";
 
 function ProjectListSkeleton() {
   return (
@@ -16,7 +19,7 @@ function ProjectListSkeleton() {
 }
 
 export function ProjectList() {
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: projectKeys.all,
     queryFn: fetchProjects,
   });
@@ -26,18 +29,32 @@ export function ProjectList() {
   }
 
   if (isError) {
+    if (error instanceof ApiError && error.status === 401) {
+      return (
+        <div className="flex flex-1 flex-col">
+          <ProjectListUnauthorized message={error.message} />
+        </div>
+      );
+    }
+
     return (
-      <p className="text-sm text-destructive">
-        {error instanceof Error ? error.message : "Failed to load projects."}
-      </p>
+      <div className="flex flex-1 flex-col">
+        <ProjectListError
+          message={
+            error instanceof Error ? error.message : "Failed to load projects."
+          }
+          isRetrying={isFetching}
+          onRetry={() => void refetch()}
+        />
+      </div>
     );
   }
 
   if (!data?.length) {
     return (
-      <p className="text-sm text-muted-foreground">
-        No projects yet. Create your first one with New project.
-      </p>
+      <div className="flex flex-1 flex-col">
+        <ProjectListEmpty />
+      </div>
     );
   }
 
