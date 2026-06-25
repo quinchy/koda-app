@@ -52,7 +52,7 @@ function buildOrderBy(
   }
 }
 
-export class ProjectRepository {
+class ProjectRepository {
   findMany(query: ProjectListQuery, userId: string) {
     return prisma.project.findMany({
       where: buildWhere(query, userId),

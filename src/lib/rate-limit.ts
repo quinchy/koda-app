@@ -135,7 +135,7 @@ function rateLimitedResponse(
   );
 }
 
-export async function checkRateLimit(
+async function checkRateLimit(
   identifier: string,
   config: RateLimitConfig,
 ): Promise<{ allowed: true } | { allowed: false; response: NextResponse }> {

@@ -3,11 +3,12 @@
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
 import { redirectAfterAuth } from "@/lib/auth-redirect";
 
-export function SignOutButton() {
-  const mutation = useMutation({
+function useSignOutMutation() {
+  return useMutation({
     mutationFn: async () => {
       const { error } = await authClient.signOut();
 
@@ -24,6 +25,10 @@ export function SignOutButton() {
       redirectAfterAuth("/auth/login");
     },
   });
+}
+
+export function SignOutButton() {
+  const mutation = useSignOutMutation();
 
   return (
     <Button
@@ -34,5 +39,18 @@ export function SignOutButton() {
     >
       {mutation.isPending ? "Signing out..." : "Sign out"}
     </Button>
+  );
+}
+
+export function SignOutMenuItem() {
+  const mutation = useSignOutMutation();
+
+  return (
+    <DropdownMenuItem
+      disabled={mutation.isPending}
+      onClick={() => mutation.mutate()}
+    >
+      {mutation.isPending ? "Signing out..." : "Sign out"}
+    </DropdownMenuItem>
   );
 }

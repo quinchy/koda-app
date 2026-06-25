@@ -77,9 +77,3 @@ export function getRedis(): RedisAdapter | null {
   logRedisStatus("none", { reason: "missing-url" });
   return adapter;
 }
-
-export function resetRedisForTests(): void {
-  adapter = null;
-  checked = false;
-  statusLogged = false;
-}
