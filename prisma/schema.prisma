@@ -21,8 +21,12 @@ model Project {
   priority    Priority
   startDate   DateTime @db.Date
   dueDate     DateTime @db.Date
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }
 
 enum Status {
@@ -48,6 +52,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  projects      Project[]
 
   @@unique([email])
   @@map("user")
