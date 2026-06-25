@@ -89,6 +89,58 @@ upsert_branch_env() {
       }')" >/dev/null
 }
 
+delete_target_env() {
+  local key="$1"
+  local target="$2"
+  local env_ids
+
+  env_ids="$(api GET "/v10/projects/${VERCEL_PROJECT_ID}/env" | jq -r --arg key "${key}" --arg target "${target}" '
+    .envs[]?
+    | select(.key == $key)
+    | select((.gitBranch // "") == "")
+    | select((.target // []) as $targets | if ($targets | type) == "array" then ($targets | index($target)) else $targets == $target end)
+    | .id
+  ')"
+
+  while IFS= read -r env_id; do
+    if [[ -n "${env_id}" && "${env_id}" != "null" ]]; then
+      api DELETE "/v10/projects/${VERCEL_PROJECT_ID}/env/${env_id}" >/dev/null
+    fi
+  done <<<"${env_ids}"
+}
+
+upsert_target_env() {
+  local key="$1"
+  local value="$2"
+  local target="$3"
+
+  delete_target_env "${key}" "${target}"
+
+  api POST "/v10/projects/${VERCEL_PROJECT_ID}/env" \
+    --data "$(jq -n \
+      --arg key "${key}" \
+      --arg value "${value}" \
+      --arg target "${target}" \
+      '{
+        key: $key,
+        value: $value,
+        type: "encrypted",
+        target: [$target]
+      }')" >/dev/null
+}
+
+sync_redis_env_for_target() {
+  local target="$1"
+
+  : "${UPSTASH_REDIS_REST_URL:?UPSTASH_REDIS_REST_URL GitHub secret is required}"
+  : "${UPSTASH_REDIS_REST_TOKEN:?UPSTASH_REDIS_REST_TOKEN GitHub secret is required}"
+
+  upsert_target_env "UPSTASH_REDIS_REST_URL" "${UPSTASH_REDIS_REST_URL}" "${target}"
+  upsert_target_env "UPSTASH_REDIS_REST_TOKEN" "${UPSTASH_REDIS_REST_TOKEN}" "${target}"
+
+  log "Synced Redis env for Vercel ${target}"
+}
+
 wait_for_preview_deployment() {
   local branch="$1"
   local commit_sha="$2"
@@ -221,5 +273,23 @@ if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
     exit 0
   fi
 
+  sync_redis_env_for_target "preview"
   configure_preview_auth_env "${BRANCH}" "${COMMIT_SHA}"
+  exit 0
+fi
+
+if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+  if [[ "${GITHUB_REF_NAME:-}" == "main" ]]; then
+    sync_redis_env_for_target "production"
+    exit 0
+  fi
+
+  log "Skipping Vercel env sync for push to ${GITHUB_REF_NAME:-unknown}"
+  exit 0
+fi
+
+if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+  sync_redis_env_for_target "preview"
+  sync_redis_env_for_target "production"
+  exit 0
 fi
