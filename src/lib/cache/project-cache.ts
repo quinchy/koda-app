@@ -3,8 +3,8 @@ import { getRedis } from "@/lib/adapter/redis";
 import type { SerializedProject } from "@/lib/projects/types";
 import type { ProjectListQuery } from "@/lib/validations/project-list-query";
 
-export const PROJECT_LIST_CACHE_TTL_SEC = 60;
-export const PROJECT_ITEM_CACHE_TTL_SEC = 60;
+const PROJECT_LIST_CACHE_TTL_SEC = 60;
+const PROJECT_ITEM_CACHE_TTL_SEC = 60;
 
 const CACHE_VERSION = "v1";
 
@@ -36,7 +36,7 @@ function itemCachePrefix(userId: string) {
   return `projects:${CACHE_VERSION}:item:${userId}:`;
 }
 
-export async function getCachedProjectList(
+async function getCachedProjectList(
   userId: string,
   query: ProjectListQuery,
 ): Promise<SerializedProject[] | null> {
@@ -52,7 +52,7 @@ export async function getCachedProjectList(
   }
 }
 
-export async function setCachedProjectList(
+async function setCachedProjectList(
   userId: string,
   query: ProjectListQuery,
   projects: SerializedProject[],
@@ -71,7 +71,7 @@ export async function setCachedProjectList(
   }
 }
 
-export async function getCachedProject(
+async function getCachedProject(
   userId: string,
   projectId: number,
 ): Promise<SerializedProject | null> {
